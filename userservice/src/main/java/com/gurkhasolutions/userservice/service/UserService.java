@@ -1,15 +1,17 @@
 package com.gurkhasolutions.userservice.service;
 
 
+import com.gurkhasolutions.userservice.dto.ApiResponse;
 import com.gurkhasolutions.userservice.dto.UserDto;
+import com.gurkhasolutions.userservice.exception.EmailNotFountException;
+import com.gurkhasolutions.userservice.exception.UserNotFoundException;
 import com.gurkhasolutions.userservice.model.User;
 import com.gurkhasolutions.userservice.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -18,7 +20,8 @@ public class UserService {
     private UserRepository userRepository;
 
 
-    public Object createUser(UserDto userDto) {
+    public ApiResponse createUser(UserDto userDto) {
+        ApiResponse apiResponse= new ApiResponse();
 
         Optional<User> userByEmail = userRepository.findByEmail(userDto.getEmail());
         if(!userByEmail.isPresent()){
@@ -28,75 +31,96 @@ public class UserService {
                     .lastName(userDto.getLastName())
                     .role(userDto.getRole())
                     .build();
-            return userRepository.save(user);
+            User savedUser=userRepository.save(user);
+            apiResponse.setData(savedUser);
+            apiResponse.setMessage("User created successfully");
+            apiResponse.setStatusCode(HttpStatus.OK.value());
+            return apiResponse;
         }
-
-        Map<String, String> errors= new HashMap<>();
-        errors.put("message","User with email "+userDto.getEmail()+" already exist.");
-        errors.put("statusCode","400");
-        return errors;
+        apiResponse.setMessage("User with email "+userDto.getEmail()+" already exist.");
+        apiResponse.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        return apiResponse;
 
 
 
     }
 
-    public Object findUserById(Long userId) {
+    public ApiResponse findUserById(Long userId) {
+        ApiResponse apiResponse= new ApiResponse();
         Optional<User> userById = userRepository.findById(userId);
         if(userById.isPresent()){
-            return userById;
+            apiResponse.setData(userById);
+            apiResponse.setStatusCode(HttpStatus.OK.value());
+            apiResponse.setMessage("User available");
+            return apiResponse;
         }
-        Map<String, String> errors= new HashMap<>();
-        errors.put("message","User with id "+userId+" not Found");
-        errors.put("statusCode","404");
-        return errors;
+       throw new UserNotFoundException("User with id "+userId+" not found.");
 
     }
 
-    public List<User> finAllUsers() {
+    public ApiResponse finAllUsers() {
 //        userRepository.findAll().stream()
 //               .filter(user -> user.getRole().equals("User"))
 //               .collect(Collectors.toList());
-
-        return userRepository.findAll();
+        ApiResponse apiResponse= new ApiResponse();
+        List<User> users=userRepository.findAll();
+        apiResponse.setData(users);
+        apiResponse.setStatusCode(HttpStatus.OK.value());
+        return apiResponse;
     }
 
-    public Map<String, String> deleteUserById(Long userId) {
-
+    public ApiResponse deleteUserById(Long userId) {
+        ApiResponse apiResponse= new ApiResponse();
         Optional<User> userById = userRepository.findById(userId);
-        Map<String,String > resp= new HashMap<>();
+
         if(userById.isPresent()){
             userRepository.deleteById(userId);
-            resp.put("message","User with id "+userId+" deleted successfully");
-            resp.put("statusCode","200");
-            return resp;
+            apiResponse.setMessage("User with id "+userId+" deleted successfully");
+            apiResponse.setStatusCode(HttpStatus.OK.value());
+            return apiResponse;
         }
-        resp.put("message","User with id "+userId+" not found");
-        resp.put("statusCode","404");
-        return resp;
+        apiResponse.setMessage("User with id "+userId+" Not Found.");
+        apiResponse.setStatusCode(HttpStatus.NOT_FOUND.value());
+        return apiResponse;
 
     }
 
-    public Object updateUser(Long userId, UserDto userDto) {
+    public ApiResponse updateUser(Long userId, UserDto userDto) {
+        ApiResponse apiResponse= new ApiResponse();
         Optional<User> userById = userRepository.findById(userId);
         if(userById.isPresent()){
             userById.get().setEmail(userDto.getEmail());
             userById.get().setRole(userDto.getRole());
             userById.get().setFirstName(userDto.getFirstName());
             userById.get().setLastName(userDto.getLastName());
-            return userRepository.save(userById.get());
+            User upadatedUser=userRepository.save(userById.get());
+            apiResponse.setData(upadatedUser);
+            apiResponse.setMessage("User updated successfully");
+            apiResponse.setStatusCode(HttpStatus.OK.value());
+            return apiResponse;
         }
-        Map<String, String> errors= new HashMap<>();
-        errors.put("message","User with id "+userId+" not Found");
-        errors.put("statusCode","404");
-        return errors;
+        apiResponse.setMessage("User with email "+userDto.getEmail()+" already exist.");
+        apiResponse.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        return apiResponse;
 
     }
 
-    public Optional<User> findUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public ApiResponse findUserByEmail(String email) {
+        ApiResponse apiResponse= new ApiResponse();
+        Optional<User> userWithEmail= userRepository.findByEmail(email);
+        if(userWithEmail.isPresent()){
+        apiResponse.setData(userWithEmail);
+        apiResponse.setStatusCode(HttpStatus.OK.value());
+        return apiResponse;
+        }
+        throw new EmailNotFountException("Email with "+email+ " No found");
     }
 
-    public List<User> getUsersByRole(String role) {
-       return userRepository.findUserWithRole(role);
+    public ApiResponse getUsersByRole(String role) {
+        ApiResponse apiResponse= new ApiResponse();
+        List<User> userWithRole= userRepository.findUserWithRole(role);
+        apiResponse.setData(userWithRole);
+        apiResponse.setStatusCode(HttpStatus.OK.value());
+        return apiResponse;
     }
 }

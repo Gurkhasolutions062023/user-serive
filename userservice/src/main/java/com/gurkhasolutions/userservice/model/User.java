@@ -30,4 +30,16 @@ public class User {
     @Column
     private String role;
 
+
+
+
+    // policy
+    // policy_id
+    //policy_name
+    //policy_description
+    // policy price
+    // added_by
+
+
+
 }
